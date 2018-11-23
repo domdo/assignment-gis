@@ -74,9 +74,33 @@
                                 <div><label>Pozícia</label></div>
                                 <input type="text" id="srLon" name="srLon" value="" readonly><br>
                                 <input type="text" id="srLat" name="srLat" value="" readonly><br>
-                                <a href="#" id="stationRoutes" onclick="getMapPosition(this, 'srLat', 'srLon')">Nastav pozíciu</a>
+                                <a href="#" id="stationRoutes" onclick="getMapPosition(this, 'srLat', 'srLon')">Nastav
+                                    pozíciu</a>
                             </div>
                             <a href="#" onclick="document.getElementById('station_routes').submit();">Vyhľadaj</a>
+                        </form>
+                    </div>
+                    <!--<a class="accordion">Vyhľadaj najbližšie trasy s podmienkou</a>
+                    <div class="panel">
+                        <form class="myForm" id="routesCond" action="javascript:getData('http://localhost:8000/nearestStations/?lon='+myLon.value+
+                                                                                '&lat='+myLat.value+
+                                                                                '&dist='+dist.value)">
+                            <div class="myPosition">
+                                <div><label>Pozícia</label></div>
+                                <input type="text" id="myLon" name="rtLon" value="" readonly><br>
+                                <input type="text" id="myLat" name="rtLat" value="" readonly><br>
+                                <a href="#" id="nearPosButton" onclick="getMapPosition(this, 'myLat', 'myLon')">Nastav
+                                    pozíciu</a>
+                            </div>
+                            <label for="dist">Prechádza cez:</label><br>
+                            <div id="route_conditions">
+                                <input type="checkbox" name="bridge" value="bridge">Most<br>
+                                <input type="checkbox" name="tunnel" value="tunnel">Tunel<br>
+                                <input type="checkbox" name="water" value="water">Vodná plocha<br>
+                            </div>
+                            <label for="dist">Vzdialenosť:</label>
+                            <input type="text" id="dist" name="rtdist" value=""><br>
+                            <a href="#" onclick="document.getElementById('nearPos').submit();">Vyhľadaj</a>
                         </form>
                     </div>
                     <a class="accordion">Vyhľadaj trasu</a>
@@ -99,7 +123,7 @@
                             </div>
                             <a href="#" onclick="document.getElementById('route').submit();">Vyhľadaj</a>
                         </form>
-                    </div>
+                    </div>-->
                     <a href="#" onclick="clearMap()">Vyčisti mapu</a>
                 </div>
             </div>

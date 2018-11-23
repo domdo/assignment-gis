@@ -192,3 +192,9 @@ input[type="text"] {
 .posLabel {
     padding-left: 20px;
 }
+
+#route_conditions {
+    padding-left: 65px;
+    margin-bottom: 10px;
+    text-align: left;
+}
