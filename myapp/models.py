@@ -26,6 +26,7 @@ class Layer(models.Model):
 
 class PlanetOsmLine(models.Model):
     osm_id = models.BigIntegerField(primary_key=True)
+    my_length = models.FloatField(blank=True, null=True)
     access = models.TextField(blank=True, null=True)
     addr_housename = models.TextField(db_column='addr:housename', blank=True, null=True)  # Field renamed to remove unsuitable characters.
     addr_housenumber = models.TextField(db_column='addr:housenumber', blank=True, null=True)  # Field renamed to remove unsuitable characters.

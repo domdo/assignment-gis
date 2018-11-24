@@ -55,7 +55,7 @@ function getData(url) {
                 console.log(response);
             }
             else {
-                alert("Service not found/working!");
+                alert("Something went wrong!");
             }
         }
     }

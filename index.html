@@ -80,30 +80,33 @@
                             <a href="#" onclick="document.getElementById('station_routes').submit();">Vyhľadaj</a>
                         </form>
                     </div>
-                    <!--<a class="accordion">Vyhľadaj najbližšie trasy s podmienkou</a>
+                    <a class="accordion">Vyhľadaj najbližšie trasy s podmienkou</a>
                     <div class="panel">
-                        <form class="myForm" id="routesCond" action="javascript:getData('http://localhost:8000/nearestStations/?lon='+myLon.value+
-                                                                                '&lat='+myLat.value+
-                                                                                '&dist='+dist.value)">
+                        <form class="myForm" id="routesCond" action="javascript:getData('http://localhost:8000/routes-w-cond/?lon='+rtLon.value+
+                                                                                '&lat='+rtLat.value+
+                                                                                '&dist='+rtdist.value+
+                                                                                '&bridge='+bridge.checked+
+                                                                                '&tunnel='+tunnel.checked+
+                                                                                '&water='+water.checked)">
                             <div class="myPosition">
                                 <div><label>Pozícia</label></div>
-                                <input type="text" id="myLon" name="rtLon" value="" readonly><br>
-                                <input type="text" id="myLat" name="rtLat" value="" readonly><br>
-                                <a href="#" id="nearPosButton" onclick="getMapPosition(this, 'myLat', 'myLon')">Nastav
+                                <input type="text" id="rtLon" name="rtLon" value="" readonly><br>
+                                <input type="text" id="rtLat" name="rtLat" value="" readonly><br>
+                                <a href="#" id="nearPosButton" onclick="getMapPosition(this, 'rtLat', 'rtLon')">Nastav
                                     pozíciu</a>
                             </div>
                             <label for="dist">Prechádza cez:</label><br>
                             <div id="route_conditions">
-                                <input type="checkbox" name="bridge" value="bridge">Most<br>
-                                <input type="checkbox" name="tunnel" value="tunnel">Tunel<br>
-                                <input type="checkbox" name="water" value="water">Vodná plocha<br>
+                                <input type="checkbox" id="bridge" name="bridge" value="">Most<br>
+                                <input type="checkbox" id="tunnel" name="tunnel" value="">Tunel<br>
+                                <input type="checkbox" id="water" name="water" value="">Vodná plocha<br>
                             </div>
                             <label for="dist">Vzdialenosť:</label>
-                            <input type="text" id="dist" name="rtdist" value=""><br>
-                            <a href="#" onclick="document.getElementById('nearPos').submit();">Vyhľadaj</a>
+                            <input type="text" id="rtdist" name="rtdist" value=""><br>
+                            <a href="#" onclick="document.getElementById('routesCond').submit();">Vyhľadaj</a>
                         </form>
                     </div>
-                    <a class="accordion">Vyhľadaj trasu</a>
+                    <!--<a class="accordion">Vyhľadaj trasu</a>
                     <div class="panel">
                         <form class="myForm" id="route" action="javascript:getData('http://localhost:8000/route/?startLon='+startLon.value+
                                                                                 '&startLat='+startLat.value+
