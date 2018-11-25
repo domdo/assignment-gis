@@ -1,6 +1,0 @@
-Mapbox:
-1. Pridany layer rail-station-label (nazvy stanic s ikonkou)
-2. Water a Waterway - zmenena farby
-3. Landuse - zmenene farby
-4. National_park - zmenena farba
-5. Background - zmenena farba

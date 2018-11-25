@@ -20,8 +20,11 @@ Build a map-based application, which lets the user see geo-based data on a map a
 
 Fill in (either in English, or in Slovak):
 
-**Application description**: `<fill in>`
+**Application description**: This app is targeted at the Kanto region of Japan and it's railways and metro. It consists of 3 scenarios: 
+1. Find railway/metro stations in given radius to a given position.
+2. Find the nearest railway/metro station and it's railways or metro routes.
+3. Find railways or metro routes in given radius with given conditions. Conditions for the routes are going through a bridge, a tunnel, or through water. You can choose any combination of these conditions.
 
-**Data source**: `<fill in>`
+**Data source**: [Open Street Maps](https://www.openstreetmap.org/)
 
-**Technologies used**: `<fill in>`
+**Technologies used**: python, django, postgis, postgresql, html, css, javascript, leafletjs, mapbox

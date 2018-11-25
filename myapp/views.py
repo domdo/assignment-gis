@@ -9,6 +9,7 @@ from .models import PlanetOsmLine
 from .models import PlanetOsmPolygon
 from .result_processing import *
 
+
 def index(request):
     return render(request, 'index.html')
 

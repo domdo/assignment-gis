@@ -1,4 +1,0 @@
-index_points_on_railway
-index_lines_on_railway
-index_polygons_on_railway
-index_polygons_on_water_and_waterway

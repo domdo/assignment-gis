@@ -1,62 +1,170 @@
-*This is a documentation for a fictional project, just to show you what I expect. Notice a few key properties:*
-- *no cover page, really*
-- *no copy&pasted assignment text*
-- *no code samples*
-- *concise, to the point, gets me a quick overview of what was done and how*
-- *I don't really care about the document length*
-- *I used links where appropriate*
-
 # Overview
 
-This application shows hotels in Bratislava on a map. Most important features are:
-- search by proximity to my current location
-- search by hotel name
-- intelligent ordering - by proximity and by hotel features
-- hotels on the map are color coded by their quality assigned in stars (standard)
+Aplikácia je zameraná na železnice a metrá v Japonskom regióne Kanto. Poskytuje 3 scenáre:
+1. Možnosť vyhľadať stanice v okolí s určeným polomerom od zadanej pozície.
+2. Možnosť vyhľadať najbližšiu stanicu od zadanej pozície a ňou prechádzajúce metrové a železničné trate.
+3. Možnosť vyhľadať železničné a metrové trate v okolí s určeným polomerom od zadanej pozície s podmienkami. Dostupné podmienky pre trate sú: prechod cez most, prechod tunelom, prechod vodnou plochou. Je možné lubovoľne nakombinovať dané podmienky.
 
-This is it in action:
+Aplikácia samozrejme ponúka možnosť premazania mapy. Zadávana pozícia používateľom má vlastnú značku.
+
+Ukážková snímka z aplikácie:
 
 ![Screenshot](screenshot.png)
 
-The application has 2 separate parts, the client which is a [frontend web application](#frontend) using mapbox API and mapbox.js and the [backend application](#backend) written in [Rails](http://rubyonrails.org/), backed by PostGIS. The frontend application communicates with backend using a [REST API](#api).
+Klient je [webová aplikácia](#frontend), ktorá používa [leaflet.js](http://leafletjs.com/). [Server](#backend) je písaný v [Pythone](https://www.python.org/) a [Djangu](https://www.djangoproject.com/), s PostGIS databázou. Klient posiela požiadavky na server cez [REST API](#api).
 
 # Frontend
 
-The frontend application is a static HTML page (`index.html`), which shows a mapbox.js widget. It is displaying hotels, which are mostly in cities, thus the map style is based on the Emerald style. I modified the style to better highlight main sightseeing points, restaurants and bus stops, since they are all important when selecting a hotel. I also highlighted rails tracks to assist in finding a quiet location.
+Frontend tvorí statická HTML stránka (`index.html`), na ktorej je zobrazená mapa cez [leaflet.js](http://leafletjs.com/) widget spolu z možnosťami použitia. Vzhľad mapy je upravený pomocou [mapbox](http://mapbox.com). Úpravy mapy boli nasledovné:
+1. Pridanie vrstvy s názvami železničných staníc, ich zmena farby na tyrkysovú spolu s bielym lemom a pridanie ikonky.
+2. Zmena farby vrstiev Water a Waterway (vodných plôch) na bledšie modrú.
+3. Zmena farby vrstiev Landuse a National park na iný odtieň zelenej.
+4. Zmena farby vrstvy Background (pozadia mapy) na bledú šedo-béžovú.
+Vzhľad aplikácie je pomocou css, pre ktorý ako podklad slúžila bootstrap téma [new-age](https://startbootstrap.com/template-overviews/new-age/). Css bolo zbavené nepoužívaných štýlov a bolo upravené a doplnené o nové štýly. Aplikácia je responzívna, a teda mení svoje rozmery a usporiadanie podľa rozmerov prehliadača.
 
-All relevant frontend code is in `application.js` which is referenced from `index.html`. The frontend code is very simple, its only responsibilities are:
-- detecting user's location, using the standard [web location API](https://developer.mozilla.org/en-US/docs/Web/API/Geolocation/Using_geolocation)
-- displaying the sidebar panel with hotel list and filtering controls, driving the user interaction and calling the appropriate backend APIs
-- displaying geo features by overlaying the map with a geojson layer, the geojson is provided directly by backend APIs
+Všetken kód pre frontend sa nachádza v `script.js`, ktorý je referencovaný z `index.html`. Má za úlohu iba:
+- inštancovať a nastaviť mapu
+- odosielanie a spracovanie REST požiadaviek na server
+- zobrazovanie výsledkov volaní z geojsonu na mape
+- premazanie údajov na mape
+- zaznamenanie pozície na základe kliknutia na mape pri jej zadávaní
 
 # Backend
 
-The backend application is written in Ruby on Rails and is responsible for querying geo data, formatting the geojson and data for the sidebar panel.
+Backend je napísaný v Pythone a Djangu. Komunikuje a dopytuje geo dáta z databázy, spracuje a upravuje geojsony pre frontend (úprava formátu a pridáva popup popisky pri niektorých scenároch).
 
 ## Data
 
-Hotel data is coming directly from Open Street Maps. I downloaded an extent covering whole Slovakia (around 1.2GB) and imported it using the `osm2pgsql` tool into the standard OSM schema in WGS 84 with hstore enabled. To speedup the queries I created an index on geometry column (`way`) in all tables. The application follows standard Rails conventions and all queries are placed in models inside `app/models`, mostly in `app/models/hotel.rb`. GeoJSON is generated by using a standard `st_asgeojson` function, however some postprocessing is necessary (in `app/controllers/search_controller.rb`) in order to merge all hotels into a single geojson.
+Dáta sú z Open Street Maps. Kanto región má 212MB a bol importovaný do databázy za pomoci `osm2pgsql`. Indexy boli vytvorené nad stĺpcom railway pre každú tabuľku, pri polygónoch bol vytvorený ešte index nad stĺpcami water a waterway. GeoJSONy sú generované v dopytoch pomocou štandartne dostupných funkcií, avšak na strane servera je nutné ešte ich spracovanie na úpravu formátu a pre zjednotenie v prípade viacerých dopytov.
+
+Query pre 1. scenár:
+`WITH my_res AS (SELECT osm_id, name, ST_AsGeoJSON(ST_Transform(way,4326)) AS geometry 
+                 FROM planet_osm_point 
+				 WHERE railway LIKE 'station' 
+				 AND ST_DWithin(ST_Transform(way,4326), 
+							    ST_SetSRID(ST_Point(%s, %s),4326), 
+							    56::float*%s::float/6371000::float) 
+				 UNION SELECT osm_id, name, ST_AsGeoJSON(ST_Transform(way,4326)) AS geometry 
+                 FROM planet_osm_polygon 
+				 WHERE railway LIKE 'station' 
+				 AND ST_DWithin(ST_Transform(way,4326), 
+							    ST_SetSRID(ST_Point(%s, %s),4326), 
+							    56::float*%s::float/6371000::float)) 
+SELECT json_build_object( 
+    'type',       'Feature', 
+    'geometry',   geometry::json, 
+    'properties', json_build_object( 
+        'name', name 
+     ) 
+) 
+FROM my_res`
+
+Query pre 2. scenár:
+`WITH my_res AS (SELECT osm_id, name, ST_AsGeoJSON(ST_Transform(way,4326)) AS geometry 
+                FROM planet_osm_point 
+				WHERE railway LIKE 'station' 
+				AND ST_DISTANCE(ST_Transform(way,4326), 
+								ST_SetSRID(ST_Point(%s, %s),4326)) 
+					= (SELECT min(ST_DISTANCE(ST_Transform(way,4326), 
+											  ST_SetSRID(ST_Point(%s, %s),4326))) 
+					   FROM planet_osm_point WHERE railway LIKE 'station')) 
+SELECT json_build_object( 
+    'type',       'Feature', 
+    'geometry',   geometry::json, 
+    'properties', json_build_object( 
+        'name', name 
+     ) '
+ ) 
+FROM my_res`
+`WITH my_station AS (SELECT ST_Transform(way,4326) as geometry 
+					 FROM planet_osm_point WHERE railway LIKE 'station' 
+					 AND ST_DISTANCE(ST_Transform(way,4326), 
+									 ST_SetSRID(ST_Point(%s, %s),4326)) 
+			             = (SELECT min(ST_DISTANCE(ST_Transform(way,4326), 
+												   ST_SetSRID(ST_Point(%s, %s),4326))) 
+						    FROM planet_osm_point 
+						    WHERE railway LIKE 'station')), 
+my_dist AS (SELECT min(ST_DISTANCE(ST_ClosestPoint(ST_Transform(way,4326),(SELECT geometry FROM my_station)), 
+								   (SELECT geometry FROM my_station))) as min_dist 
+			FROM planet_osm_line 
+			WHERE (railway LIKE 'rail' OR railway LIKE 'subway')), 
+my_res AS (SELECT osm_id, name, operator, railway, ST_AsGeoJSON(ST_Transform(way,4326)) AS geometry 
+		   FROM planet_osm_line 
+		   WHERE (railway LIKE 'rail' OR railway LIKE 'subway') 
+		   AND ST_DISTANCE(ST_ClosestPoint(ST_Transform(way,4326), (SELECT geometry FROM my_station)), 
+						   (SELECT geometry FROM my_station))::numeric 
+				< 0.0001::numeric) 
+SELECT json_build_object( 
+    'type',       'Feature', 
+    'geometry',   geometry::json, 
+    'properties', json_build_object( 
+         'name', name, 
+		 'operator', operator, 
+		 'railway', railway 
+     ) 
+) 
+FROM my_res`
+
+Query pre 3. scenár:
+`WITH waters AS (SELECT way 
+				 FROM planet_osm_polygon 
+				 WHERE ST_DWithin(ST_SetSRID(ST_Point(%s, %s),4326), 
+								  ST_Transform(way,4326), 
+								  56::float*%s::float/6371000::float) 
+				 AND (water IS NOT NULL OR waterway IS NOT NULL)), 
+my_res AS (SELECT l.osm_id, l.name, l.operator, l.railway, 
+		   ST_AsGeoJSON(ST_Transform(l.way,4326)) AS geometry, 
+		   ST_Length(ST_Transform(l.way,4326)::geography) AS my_length 
+		   FROM planet_osm_line AS l 
+		   CROSS JOIN waters AS w 
+           WHERE (l.railway LIKE 'rail' OR l.railway LIKE 'subway') 
+		   AND ST_DWithin(ST_SetSRID(ST_Point(%s, %s),4326), 
+						  ST_Transform(l.way,4326), 
+						  56::float*%s::float/6371000::float) 
+		   AND l.bridge IS NOT DISTINCT FROM %s 
+		   AND l.tunnel IS NOT DISTINCT FROM %s 
+		   AND (ST_Intersects(ST_Transform(l.way,4326), 
+							  ST_Transform(w.way,4326)) = 't' 
+				OR ST_Touches(ST_Transform(l.way,4326), '
+							  ST_Transform(w.way,4326)) = 't')) 
+SELECT json_build_object( 
+    'type',       'Feature', 
+    'geometry',   geometry::json, 
+    'properties', json_build_object( 
+        'name', name, 
+        'operator', operator, 
+		'railway', railway, 
+		'my_length', my_length 
+     )
+) 
+FROM my_res`
 
 ## Api
 
-**Find hotels in proximity to coordinates**
+Príklady volaní:
 
-`GET /search?lat=25346&long=46346123`
+**Prvý scenár**
 
-**Find hotels by name, sorted by proximity and quality**
+`GET /nearestStations/?lon=139.73560310143515&lat=35.68262143826268&dist=1000`
 
-`GET /search?name=hviezda&lat=25346&long=46346123`
+**Druhý scenár**
+
+`GET /station&routes/?startLon=139.7617299546255&startLat=35.69519736894893`
+
+**Tretí scenár**
+
+`GET /routes-w-cond/?lon=139.78334000450562&lat=35.68674859912015&dist=1000&bridge=false&tunnel=true&water=true`
 
 ### Response
 
-API calls return json responses with 2 top-level keys, `hotels` and `geojson`. `hotels` contains an array of hotel data for the sidebar, one entry per matched hotel. Hotel attributes are (mostly self-evident):
+API volania vracajú geojson objekty. Pole `features` obsahuje všetky nájdené objekty z dopytu. Každý riadok vo features predstavuje jeden objekt, ktorý obsahuje `geometry` s geografickými údajmi a `properties` s nasledovnou štruktúrou:
 ```
 {
-  "name": "Modra hviezda",
-  "style": "modern", # cuisine style
-  "stars": 3,
-  "address": "Panska 31"
-  "image_url": "/assets/hotels/652.png"
+  "name": "都営地下鉄浅草線",
+  "operator": "東京都交通局", 
+  "railway": "subway",
+  "popupContent": "<p>Meno: 都営地下鉄浅草線<br>Operátor: 東京都交通局<br>Typ: metro<br>Dĺžka: 11074.95 m</p>"
+  "my_length": 11074.9535536922
 }
 ```
-`geojson` contains a geojson with locations of all matched hotels and style definitions.
+Táto štruktúra platí pre 3. scenár. V 2. scenári chýba pole `my_length` aj jeho výskyt v `popupContent`. V 1. scenári sa v tejto štruktúre nachádza iba pole `name`.
