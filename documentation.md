@@ -35,10 +35,11 @@ Backend je napísaný v Pythone a Djangu. Komunikuje a dopytuje geo dáta z data
 
 ## Data
 
-Dáta sú z Open Street Maps. Kanto región má 212MB a bol importovaný do databázy za pomoci `osm2pgsql`. Indexy boli vytvorené nad stĺpcom railway pre každú tabuľku, pri polygónoch bol vytvorený ešte index nad stĺpcami water a waterway. GeoJSONy sú generované v dopytoch pomocou štandartne dostupných funkcií, avšak na strane servera je nutné ešte ich spracovanie na úpravu formátu a pre zjednotenie v prípade viacerých dopytov.
+Dáta sú z Open Street Maps. Kanto región má 212MB a bol importovaný do databázy za pomoci `osm2pgsql`. Indexy boli vytvorené nad stĺpcom railway a way (geo index) pre každú tabuľku, pri polygónoch bol vytvorený ešte index nad stĺpcami water a waterway a pri líniach nad stĺpcami bridge a tunnel. GeoJSONy sú generované v dopytoch pomocou štandartne dostupných funkcií, avšak na strane servera je nutné ešte ich spracovanie na úpravu formátu a pre zjednotenie v prípade viacerých dopytov.
 
 Query pre 1. scenár:
-`WITH my_res AS (SELECT osm_id, name, ST_AsGeoJSON(ST_Transform(way,4326)) AS geometry 
+```sql
+WITH my_res AS (SELECT osm_id, name, ST_AsGeoJSON(ST_Transform(way,4326)) AS geometry 
                  FROM planet_osm_point 
 				 WHERE railway LIKE 'station' 
 				 AND ST_DWithin(ST_Transform(way,4326), 
@@ -57,10 +58,12 @@ SELECT json_build_object(
         'name', name 
      ) 
 ) 
-FROM my_res`
+FROM my_res
+```
 
 Query pre 2. scenár:
-`WITH my_res AS (SELECT osm_id, name, ST_AsGeoJSON(ST_Transform(way,4326)) AS geometry 
+```sql
+WITH my_res AS (SELECT osm_id, name, ST_AsGeoJSON(ST_Transform(way,4326)) AS geometry 
                 FROM planet_osm_point 
 				WHERE railway LIKE 'station' 
 				AND ST_DISTANCE(ST_Transform(way,4326), 
@@ -75,8 +78,10 @@ SELECT json_build_object(
         'name', name 
      ) '
  ) 
-FROM my_res`
-`WITH my_station AS (SELECT ST_Transform(way,4326) as geometry 
+FROM my_res
+```
+```sql
+WITH my_station AS (SELECT ST_Transform(way,4326) as geometry 
 					 FROM planet_osm_point WHERE railway LIKE 'station' 
 					 AND ST_DISTANCE(ST_Transform(way,4326), 
 									 ST_SetSRID(ST_Point(%s, %s),4326)) 
@@ -103,10 +108,12 @@ SELECT json_build_object(
 		 'railway', railway 
      ) 
 ) 
-FROM my_res`
+FROM my_res
+```
 
 Query pre 3. scenár:
-`WITH waters AS (SELECT way 
+```sql
+WITH waters AS (SELECT way 
 				 FROM planet_osm_polygon 
 				 WHERE ST_DWithin(ST_SetSRID(ST_Point(%s, %s),4326), 
 								  ST_Transform(way,4326), 
@@ -137,7 +144,8 @@ SELECT json_build_object(
 		'my_length', my_length 
      )
 ) 
-FROM my_res`
+FROM my_res
+```
 
 ## Api
 
