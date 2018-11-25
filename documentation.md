@@ -40,17 +40,17 @@ Dáta sú z Open Street Maps. Kanto región má 212MB a bol importovaný do data
 Query pre 1. scenár:
 ```sql
 WITH my_res AS (SELECT osm_id, name, ST_AsGeoJSON(ST_Transform(way,4326)) AS geometry 
-                 FROM planet_osm_point 
-				 WHERE railway LIKE 'station' 
-				 AND ST_DWithin(ST_Transform(way,4326), 
-							    ST_SetSRID(ST_Point(%s, %s),4326), 
-							    56::float*%s::float/6371000::float) 
-				 UNION SELECT osm_id, name, ST_AsGeoJSON(ST_Transform(way,4326)) AS geometry 
-                 FROM planet_osm_polygon 
-				 WHERE railway LIKE 'station' 
-				 AND ST_DWithin(ST_Transform(way,4326), 
-							    ST_SetSRID(ST_Point(%s, %s),4326), 
-							    56::float*%s::float/6371000::float)) 
+                FROM planet_osm_point 
+		WHERE railway LIKE 'station' 
+		AND ST_DWithin(ST_Transform(way,4326), 
+				T_SetSRID(ST_Point(%s, %s),4326), 
+				56::float*%s::float/6371000::float) 
+		UNION SELECT osm_id, name, ST_AsGeoJSON(ST_Transform(way,4326)) AS geometry 
+                FROM planet_osm_polygon 
+		WHERE railway LIKE 'station' 
+		AND ST_DWithin(ST_Transform(way,4326), 
+			       ST_SetSRID(ST_Point(%s, %s),4326), 
+			       56::float*%s::float/6371000::float)) 
 SELECT json_build_object( 
     'type',       'Feature', 
     'geometry',   geometry::json, 
@@ -65,40 +65,40 @@ Query pre 2. scenár:
 ```sql
 WITH my_res AS (SELECT osm_id, name, ST_AsGeoJSON(ST_Transform(way,4326)) AS geometry 
                 FROM planet_osm_point 
-				WHERE railway LIKE 'station' 
-				AND ST_DISTANCE(ST_Transform(way,4326), 
-								ST_SetSRID(ST_Point(%s, %s),4326)) 
-					= (SELECT min(ST_DISTANCE(ST_Transform(way,4326), 
-											  ST_SetSRID(ST_Point(%s, %s),4326))) 
-					   FROM planet_osm_point WHERE railway LIKE 'station')) 
+		WHERE railway LIKE 'station' 
+		AND ST_DISTANCE(ST_Transform(way,4326), 
+				ST_SetSRID(ST_Point(%s, %s),4326)) 
+		= (SELECT min(ST_DISTANCE(ST_Transform(way,4326), 
+					  ST_SetSRID(ST_Point(%s, %s),4326))) 
+		   FROM planet_osm_point WHERE railway LIKE 'station')) 
 SELECT json_build_object( 
     'type',       'Feature', 
     'geometry',   geometry::json, 
     'properties', json_build_object( 
         'name', name 
      ) '
- ) 
+) 
 FROM my_res
 ```
 ```sql
 WITH my_station AS (SELECT ST_Transform(way,4326) as geometry 
-					 FROM planet_osm_point WHERE railway LIKE 'station' 
-					 AND ST_DISTANCE(ST_Transform(way,4326), 
-									 ST_SetSRID(ST_Point(%s, %s),4326)) 
-			             = (SELECT min(ST_DISTANCE(ST_Transform(way,4326), 
-												   ST_SetSRID(ST_Point(%s, %s),4326))) 
-						    FROM planet_osm_point 
-						    WHERE railway LIKE 'station')), 
+		    FROM planet_osm_point WHERE railway LIKE 'station' 
+		    AND ST_DISTANCE(ST_Transform(way,4326), 
+				    ST_SetSRID(ST_Point(%s, %s),4326)) 
+			= (SELECT min(ST_DISTANCE(ST_Transform(way,4326), 
+						  ST_SetSRID(ST_Point(%s, %s),4326))) 
+			   FROM planet_osm_point 
+			   WHERE railway LIKE 'station')), 
 my_dist AS (SELECT min(ST_DISTANCE(ST_ClosestPoint(ST_Transform(way,4326),(SELECT geometry FROM my_station)), 
-								   (SELECT geometry FROM my_station))) as min_dist 
-			FROM planet_osm_line 
-			WHERE (railway LIKE 'rail' OR railway LIKE 'subway')), 
+				   (SELECT geometry FROM my_station))) as min_dist 
+            FROM planet_osm_line 
+	    WHERE (railway LIKE 'rail' OR railway LIKE 'subway')), 
 my_res AS (SELECT osm_id, name, operator, railway, ST_AsGeoJSON(ST_Transform(way,4326)) AS geometry 
-		   FROM planet_osm_line 
-		   WHERE (railway LIKE 'rail' OR railway LIKE 'subway') 
-		   AND ST_DISTANCE(ST_ClosestPoint(ST_Transform(way,4326), (SELECT geometry FROM my_station)), 
-						   (SELECT geometry FROM my_station))::numeric 
-				< 0.0001::numeric) 
+	   FROM planet_osm_line 
+	   WHERE (railway LIKE 'rail' OR railway LIKE 'subway') 
+	   AND ST_DISTANCE(ST_ClosestPoint(ST_Transform(way,4326), (SELECT geometry FROM my_station)), 
+					   (SELECT geometry FROM my_station))::numeric 
+	       < 0.0001::numeric) 
 SELECT json_build_object( 
     'type',       'Feature', 
     'geometry',   geometry::json, 
@@ -114,26 +114,26 @@ FROM my_res
 Query pre 3. scenár:
 ```sql
 WITH waters AS (SELECT way 
-				 FROM planet_osm_polygon 
-				 WHERE ST_DWithin(ST_SetSRID(ST_Point(%s, %s),4326), 
-								  ST_Transform(way,4326), 
-								  56::float*%s::float/6371000::float) 
-				 AND (water IS NOT NULL OR waterway IS NOT NULL)), 
+		FROM planet_osm_polygon 
+		WHERE ST_DWithin(ST_SetSRID(ST_Point(%s, %s),4326), 
+				 ST_Transform(way,4326), 
+				 56::float*%s::float/6371000::float) 
+		AND (water IS NOT NULL OR waterway IS NOT NULL)), 
 my_res AS (SELECT l.osm_id, l.name, l.operator, l.railway, 
-		   ST_AsGeoJSON(ST_Transform(l.way,4326)) AS geometry, 
-		   ST_Length(ST_Transform(l.way,4326)::geography) AS my_length 
-		   FROM planet_osm_line AS l 
-		   CROSS JOIN waters AS w 
+	   ST_AsGeoJSON(ST_Transform(l.way,4326)) AS geometry, 
+	   ST_Length(ST_Transform(l.way,4326)::geography) AS my_length 
+	   FROM planet_osm_line AS l 
+	   CROSS JOIN waters AS w 
            WHERE (l.railway LIKE 'rail' OR l.railway LIKE 'subway') 
-		   AND ST_DWithin(ST_SetSRID(ST_Point(%s, %s),4326), 
-						  ST_Transform(l.way,4326), 
-						  56::float*%s::float/6371000::float) 
-		   AND l.bridge IS NOT DISTINCT FROM %s 
-		   AND l.tunnel IS NOT DISTINCT FROM %s 
-		   AND (ST_Intersects(ST_Transform(l.way,4326), 
-							  ST_Transform(w.way,4326)) = 't' 
-				OR ST_Touches(ST_Transform(l.way,4326), '
-							  ST_Transform(w.way,4326)) = 't')) 
+	   AND ST_DWithin(ST_SetSRID(ST_Point(%s, %s),4326), 
+			  ST_Transform(l.way,4326), 
+			  56::float*%s::float/6371000::float) 
+	   AND l.bridge IS NOT DISTINCT FROM %s 
+	   AND l.tunnel IS NOT DISTINCT FROM %s 
+	   AND (ST_Intersects(ST_Transform(l.way,4326), 
+			      ST_Transform(w.way,4326)) = 't' 
+		OR ST_Touches(ST_Transform(l.way,4326), '
+			      ST_Transform(w.way,4326)) = 't')) 
 SELECT json_build_object( 
     'type',       'Feature', 
     'geometry',   geometry::json, 
