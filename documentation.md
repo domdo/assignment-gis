@@ -43,8 +43,8 @@ WITH my_res AS (SELECT osm_id, name, ST_AsGeoJSON(ST_Transform(way,4326)) AS geo
                 FROM planet_osm_point 
 		WHERE railway LIKE 'station' 
 		AND ST_DWithin(ST_Transform(way,4326), 
-				T_SetSRID(ST_Point(%s, %s),4326), 
-				56::float*%s::float/6371000::float) 
+			       ST_SetSRID(ST_Point(%s, %s),4326), 
+			       56::float*%s::float/6371000::float) 
 		UNION SELECT osm_id, name, ST_AsGeoJSON(ST_Transform(way,4326)) AS geometry 
                 FROM planet_osm_polygon 
 		WHERE railway LIKE 'station' 
@@ -132,7 +132,7 @@ my_res AS (SELECT l.osm_id, l.name, l.operator, l.railway,
 	   AND l.tunnel IS NOT DISTINCT FROM %s 
 	   AND (ST_Intersects(ST_Transform(l.way,4326), 
 			      ST_Transform(w.way,4326)) = 't' 
-		OR ST_Touches(ST_Transform(l.way,4326), '
+		OR ST_Touches(ST_Transform(l.way,4326), 
 			      ST_Transform(w.way,4326)) = 't')) 
 SELECT json_build_object( 
     'type',       'Feature', 
