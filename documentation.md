@@ -1,4 +1,4 @@
-# Overview
+# Overview - Dominika Dolhá
 
 Aplikácia je zameraná na železnice a metrá v Japonskom regióne Kanto. Poskytuje 3 scenáre:
 1. Možnosť vyhľadať stanice v okolí s určeným polomerom od zadanej pozície.
